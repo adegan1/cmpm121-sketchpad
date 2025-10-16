@@ -1,5 +1,14 @@
-.icon {
-  width: 64px;
-  vertical-align: top;
-  border: 1px solid salmon;
+.title {
+  font-family: "Brush Script MT", cursive, sans-serif;
+  color: #000000;
+  text-align: center;
+}
+
+.canvas {
+  border: 1px solid #000000;
+  background-color: #fff;
+  box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.1);
+  display: block;
+  margin: 20px auto;
+  border-radius: 8px;
 }
