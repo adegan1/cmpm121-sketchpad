@@ -19,8 +19,6 @@
 }
 
 .button {
-  background-color: #4d4d4d;
-  color: white;
   border: none;
   padding: 10px 20px;
   text-align: center;
@@ -30,4 +28,14 @@
   margin: 4px 2px;
   cursor: pointer;
   border-radius: 4px;
+}
+
+.gray-button {
+  background-color: #353535;
+  color: white;
+}
+
+.orange-button {
+  background-color: #d85e17;
+  color: white;
 }

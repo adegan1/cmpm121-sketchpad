@@ -10,7 +10,9 @@ document.body.innerHTML = `
   <canvas class="canvas" id="sketchpad" width="256" height="256"></canvas>
 
   <div class="button-container">
-    <button class="button" id="clear">Clear</button>
+    <button class="button orange-button" id="undo">Undo</button>
+    <button class="button orange-button" id="redo">Redo</button>
+    <button class="button gray-button" id="clear">Clear</button>
   </div>
 `;
 
@@ -24,6 +26,7 @@ const event = new EventTarget();
 // Store drawn lines
 type Point = { x: number; y: number };
 const lines: Point[][] = [];
+const redoLines: Point[][] = [];
 
 let thisLine: Point[] | null = null;
 
@@ -65,6 +68,7 @@ canvas.addEventListener("mousedown", (e) => {
 
   thisLine = [];
   lines.push(thisLine);
+  redoLines.splice(0, redoLines.length); // Clear redo stack
   thisLine.push({ x: cursor.x, y: cursor.y });
 
   notify("cursor-changed");
@@ -87,8 +91,27 @@ canvas.addEventListener("mouseup", () => {
   notify("cursor-changed");
 });
 
+// Undo button functionality
+const undoButton = document.getElementById("undo") as HTMLButtonElement;
+undoButton.addEventListener("click", () => {
+  if (lines.length > 0) {
+    redoLines.push(lines.pop()!);
+    notify("drawing-changed");
+  }
+});
+
+// Redo button functionality
+const redoButton = document.getElementById("redo") as HTMLButtonElement;
+redoButton.addEventListener("click", () => {
+  if (redoLines.length > 0) {
+    lines.push(redoLines.pop()!);
+    notify("drawing-changed");
+  }
+});
+
 // Clear button functionality
 const clearButton = document.getElementById("clear") as HTMLButtonElement;
 clearButton.addEventListener("click", () => {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  lines.splice(0, lines.length);
+  notify("drawing-changed");
 });
