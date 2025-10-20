@@ -25,6 +25,7 @@ document.body.innerHTML = `
 const canvas = document.getElementById("sketchpad") as HTMLCanvasElement;
 const ctx = canvas.getContext("2d")!;
 const cursor = { active: false, x: 0, y: 0 };
+let isHovering = false;
 
 const event = new EventTarget();
 
@@ -86,10 +87,20 @@ function notify(eventName: string) {
 function redraw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   lines.forEach((line) => line.display(ctx));
+
+  // Draw preview if hovering
+  if (isHovering) {
+    ctx.beginPath();
+    ctx.arc(cursor.x, cursor.y, currentWidth / 2, 0, Math.PI * 2); // Circle centered on cursor
+    ctx.fillStyle = currentColor;
+    ctx.fill();
+    ctx.closePath();
+  }
 }
 
 event.addEventListener("drawing-changed", redraw);
 event.addEventListener("cursor-changed", redraw);
+event.addEventListener("tool-moved", redraw);
 
 // Set up event listeners for drawing
 canvas.addEventListener("mousedown", (e) => {
@@ -112,6 +123,13 @@ canvas.addEventListener("mousemove", (e) => {
     thisLine.drag({ x: cursor.x, y: cursor.y });
   }
 
+  // Update cursor position on mouse move
+  if (isHovering) {
+    cursor.x = e.offsetX;
+    cursor.y = e.offsetY;
+    notify("tool-moved");
+  }
+
   notify("drawing-changed");
 });
 
@@ -120,6 +138,19 @@ canvas.addEventListener("mouseup", () => {
   thisLine = null;
 
   notify("cursor-changed");
+});
+
+// Mouse enter and leave events to manage hovering state
+canvas.addEventListener("mouseenter", () => {
+  isHovering = true;
+  canvas.style.cursor = "none";
+  notify("tool-moved");
+});
+
+canvas.addEventListener("mouseleave", () => {
+  isHovering = false;
+  canvas.style.cursor = "default";
+  notify("drawing-changed");
 });
 
 // Undo button functionality
