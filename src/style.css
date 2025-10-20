@@ -45,3 +45,17 @@
   color: white;
   border-radius: 50px;
 }
+
+.thickness-button.selected {
+  border: 4px solid rgb(58, 58, 58);
+  transform: scale(1.05);
+  transition: all 0.1s ease;
+}
+
+.colorPicker {
+  margin-top: 10px;
+  width: 50px;
+  height: 50px;
+  border: none;
+  cursor: pointer;
+}

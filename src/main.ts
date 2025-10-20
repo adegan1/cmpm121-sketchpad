@@ -14,8 +14,10 @@ document.body.innerHTML = `
     <button class="button orange-button" id="redo">Redo</button>
     <button class="button gray-button" id="clear">Clear</button>
     <br>
-    <button class="button thickness-button" id="thin">Thin</button>
-    <button class="button thickness-button" id="thick">Thick</button>
+    <button class="button thickness-button" id="thin" data-width="2">Thin</button>
+    <button class="button thickness-button" id="thick" data-width="5">Thick</button>
+    <br>
+    <input type="color" class="colorPicker" id="colorPicker" value="#000000ff">
   </div>
 `;
 
@@ -26,10 +28,13 @@ const cursor = { active: false, x: 0, y: 0 };
 
 const event = new EventTarget();
 
+// Thickness button variables
+let currentThicknessButton: HTMLButtonElement | null = null;
+
 // Set up default canvas context
-ctx.lineWidth = 2;
 ctx.lineCap = "round";
-ctx.strokeStyle = "#000000ff";
+let currentColor = "#000000ff";
+let currentWidth = 2;
 
 // Create basic renderable interface
 interface Renderable {
@@ -40,7 +45,7 @@ interface Renderable {
 class Line implements Renderable {
   constructor(
     public points: { x: number; y: number }[],
-    public color: string,
+    public color: string | CanvasGradient | CanvasPattern,
     public width: number,
   ) {}
 
@@ -88,12 +93,11 @@ event.addEventListener("cursor-changed", redraw);
 
 // Set up event listeners for drawing
 canvas.addEventListener("mousedown", (e) => {
-  console.log("Mouse down at:", e.offsetX, e.offsetY);
   cursor.active = true;
   cursor.x = e.offsetX;
   cursor.y = e.offsetY;
 
-  thisLine = new Line([], "#000000ff", 2);
+  thisLine = new Line([], currentColor, currentWidth);
   thisLine.drag({ x: cursor.x, y: cursor.y });
   lines.push(thisLine);
   redoLines.splice(0, redoLines.length); // Clear redo stack
@@ -142,3 +146,42 @@ clearButton.addEventListener("click", () => {
   lines.splice(0, lines.length);
   notify("drawing-changed");
 });
+
+// Thickness buttons functionality
+function selectButton(button: HTMLButtonElement) {
+  // Deselect previous button and select the new one
+  if (currentThicknessButton) {
+    currentThicknessButton.classList.remove("selected");
+  }
+  button.classList.add("selected");
+  currentThicknessButton = button;
+}
+
+function setupThicknessButton(button: HTMLButtonElement) {
+  button.addEventListener("click", (e) => {
+    const width = parseInt(button.getAttribute("data-width") || "2", 10);
+    currentWidth = width;
+
+    selectButton(button);
+  });
+}
+
+// Get all thickness buttons and set them up
+document.querySelectorAll(".thickness-button").forEach((btn) => {
+  setupThicknessButton(btn as HTMLButtonElement);
+});
+
+// Select default thickness button
+const defaultThicknessButton = document.getElementById(
+  "thin",
+) as HTMLButtonElement;
+selectButton(defaultThicknessButton);
+
+// Color picker functionality
+const colorPicker = document.getElementById("colorPicker") as HTMLInputElement;
+colorPicker.addEventListener("input", () => {
+  currentColor = colorPicker.value;
+});
+
+// Initial draw
+redraw();
