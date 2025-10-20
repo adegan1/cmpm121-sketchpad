@@ -158,7 +158,7 @@ function selectButton(button: HTMLButtonElement) {
 }
 
 function setupThicknessButton(button: HTMLButtonElement) {
-  button.addEventListener("click", (e) => {
+  button.addEventListener("click", () => {
     const width = parseInt(button.getAttribute("data-width") || "2", 10);
     currentWidth = width;
 
