@@ -39,3 +39,9 @@
   background-color: #d85e17;
   color: white;
 }
+
+.thickness-button {
+  background-color: #229726;
+  color: white;
+  border-radius: 50px;
+}

@@ -13,6 +13,9 @@ document.body.innerHTML = `
     <button class="button orange-button" id="undo">Undo</button>
     <button class="button orange-button" id="redo">Redo</button>
     <button class="button gray-button" id="clear">Clear</button>
+    <br>
+    <button class="button thickness-button" id="thin">Thin</button>
+    <button class="button thickness-button" id="thick">Thick</button>
   </div>
 `;
 
@@ -44,14 +47,22 @@ class Line implements Renderable {
   display(ctx: CanvasRenderingContext2D): void {
     if (this.points.length < 2) return;
 
-    ctx.beginPath();
-    ctx.moveTo(this.points[0].x, this.points[0].y);
-    for (let i = 1; i < this.points.length; i++) {
-      ctx.lineTo(this.points[i].x, this.points[i].y);
-    }
     ctx.strokeStyle = this.color;
     ctx.lineWidth = this.width;
+
+    ctx.beginPath();
+    const { x, y } = this.points[0];
+    ctx.moveTo(x, y);
+
+    for (const { x, y } of this.points) {
+      ctx.lineTo(x, y);
+    }
+
     ctx.stroke();
+  }
+
+  drag(point: { x: number; y: number }) {
+    this.points.push(point);
   }
 }
 
@@ -77,11 +88,13 @@ event.addEventListener("cursor-changed", redraw);
 
 // Set up event listeners for drawing
 canvas.addEventListener("mousedown", (e) => {
+  console.log("Mouse down at:", e.offsetX, e.offsetY);
   cursor.active = true;
   cursor.x = e.offsetX;
   cursor.y = e.offsetY;
 
   thisLine = new Line([], "#000000ff", 2);
+  thisLine.drag({ x: cursor.x, y: cursor.y });
   lines.push(thisLine);
   redoLines.splice(0, redoLines.length); // Clear redo stack
 
@@ -89,9 +102,10 @@ canvas.addEventListener("mousedown", (e) => {
 });
 
 canvas.addEventListener("mousemove", (e) => {
-  if (cursor.active) {
+  if (cursor.active && thisLine) {
     cursor.x = e.offsetX;
     cursor.y = e.offsetY;
+    thisLine.drag({ x: cursor.x, y: cursor.y });
   }
 
   notify("drawing-changed");
