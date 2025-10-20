@@ -23,17 +23,43 @@ const cursor = { active: false, x: 0, y: 0 };
 
 const event = new EventTarget();
 
-// Store drawn lines
-type Point = { x: number; y: number };
-const lines: Point[][] = [];
-const redoLines: Point[][] = [];
-
-let thisLine: Point[] | null = null;
-
-// Set up canvas context
+// Set up default canvas context
 ctx.lineWidth = 2;
 ctx.lineCap = "round";
 ctx.strokeStyle = "#000000ff";
+
+// Create basic renderable interface
+interface Renderable {
+  display(ctx: CanvasRenderingContext2D): void;
+}
+
+// Setup different renderable objects
+class Line implements Renderable {
+  constructor(
+    public points: { x: number; y: number }[],
+    public color: string,
+    public width: number,
+  ) {}
+
+  display(ctx: CanvasRenderingContext2D): void {
+    if (this.points.length < 2) return;
+
+    ctx.beginPath();
+    ctx.moveTo(this.points[0].x, this.points[0].y);
+    for (let i = 1; i < this.points.length; i++) {
+      ctx.lineTo(this.points[i].x, this.points[i].y);
+    }
+    ctx.strokeStyle = this.color;
+    ctx.lineWidth = this.width;
+    ctx.stroke();
+  }
+}
+
+// Store drawn lines
+const lines: Renderable[] = [];
+const redoLines: Renderable[] = [];
+
+let thisLine: Line | null = null;
 
 // Notify function
 function notify(eventName: string) {
@@ -43,18 +69,7 @@ function notify(eventName: string) {
 // Redraw canvas function
 function redraw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-  for (const line of lines) {
-    if (line.length > 1) {
-      ctx.beginPath();
-      const { x, y } = line[0];
-      ctx.moveTo(x, y);
-      for (const { x, y } of line) {
-        ctx.lineTo(x, y);
-      }
-      ctx.stroke();
-    }
-  }
+  lines.forEach((line) => line.display(ctx));
 }
 
 event.addEventListener("drawing-changed", redraw);
@@ -66,10 +81,9 @@ canvas.addEventListener("mousedown", (e) => {
   cursor.x = e.offsetX;
   cursor.y = e.offsetY;
 
-  thisLine = [];
+  thisLine = new Line([], "#000000ff", 2);
   lines.push(thisLine);
   redoLines.splice(0, redoLines.length); // Clear redo stack
-  thisLine.push({ x: cursor.x, y: cursor.y });
 
   notify("cursor-changed");
 });
@@ -78,7 +92,6 @@ canvas.addEventListener("mousemove", (e) => {
   if (cursor.active) {
     cursor.x = e.offsetX;
     cursor.y = e.offsetY;
-    thisLine?.push({ x: cursor.x, y: cursor.y });
   }
 
   notify("drawing-changed");
