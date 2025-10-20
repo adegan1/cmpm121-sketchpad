@@ -18,6 +18,10 @@ document.body.innerHTML = `
     <button class="button thickness-button" id="thick" data-width="5">Thick</button>
     <br>
     <input type="color" class="colorPicker" id="colorPicker" value="#000000ff">
+    <br>
+    <button class="button sticker-button" id="sticker" data-sticker="😭">😭</button>
+    <button class="button sticker-button" id="sticker" data-sticker="❤️">❤️</button>
+    <button class="button sticker-button" id="sticker" data-sticker="✨">✨</button>
   </div>
 `;
 
@@ -27,10 +31,12 @@ const ctx = canvas.getContext("2d")!;
 const cursor = { active: false, x: 0, y: 0 };
 let isHovering = false;
 
+let currentSticker: string | null = null;
+let stickerMode = false;
+
 const event = new EventTarget();
 
-// Thickness button variables
-let currentThicknessButton: HTMLButtonElement | null = null;
+let currentButton: HTMLButtonElement | null = null;
 
 // Set up default canvas context
 ctx.lineCap = "round";
@@ -72,6 +78,23 @@ class Line implements Renderable {
   }
 }
 
+// Create sticker class
+class Sticker implements Renderable {
+  constructor(
+    public x: number,
+    public y: number,
+    public emoji: string,
+    public size: number = 32,
+  ) {}
+
+  display(ctx: CanvasRenderingContext2D): void {
+    ctx.font = `${this.size}px serif`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(this.emoji, this.x, this.y);
+  }
+}
+
 // Store drawn lines
 const lines: Renderable[] = [];
 const redoLines: Renderable[] = [];
@@ -90,11 +113,18 @@ function redraw() {
 
   // Draw preview if hovering
   if (isHovering) {
-    ctx.beginPath();
-    ctx.arc(cursor.x, cursor.y, currentWidth / 2, 0, Math.PI * 2); // Circle centered on cursor
-    ctx.fillStyle = currentColor;
-    ctx.fill();
-    ctx.closePath();
+    if (!stickerMode) { // Drawing mode preview
+      ctx.beginPath();
+      ctx.arc(cursor.x, cursor.y, currentWidth / 2, 0, Math.PI * 2); // Circle centered on cursor
+      ctx.fillStyle = currentColor;
+      ctx.fill();
+      ctx.closePath();
+    } else if (stickerMode && currentSticker) { // Sticker mode preview
+      ctx.font = `32px serif`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(currentSticker, cursor.x, cursor.y);
+    }
   }
 }
 
@@ -108,19 +138,27 @@ canvas.addEventListener("mousedown", (e) => {
   cursor.x = e.offsetX;
   cursor.y = e.offsetY;
 
-  thisLine = new Line([], currentColor, currentWidth);
-  thisLine.drag({ x: cursor.x, y: cursor.y });
-  lines.push(thisLine);
-  redoLines.splice(0, redoLines.length); // Clear redo stack
+  if (!stickerMode) { // Drawing mode
+    thisLine = new Line([], currentColor, currentWidth);
+    thisLine.drag({ x: cursor.x, y: cursor.y });
+    lines.push(thisLine);
+    redoLines.splice(0, redoLines.length); // Clear redo stack
+  } else if (stickerMode && currentSticker) { // Sticker mode
+    const sticker = new Sticker(cursor.x, cursor.y, currentSticker);
+    lines.push(sticker);
+    redoLines.splice(0, redoLines.length); // Clear redo stack
+  }
 
   notify("cursor-changed");
 });
 
 canvas.addEventListener("mousemove", (e) => {
-  if (cursor.active && thisLine) {
-    cursor.x = e.offsetX;
-    cursor.y = e.offsetY;
-    thisLine.drag({ x: cursor.x, y: cursor.y });
+  if (!stickerMode) {
+    if (cursor.active && thisLine) {
+      cursor.x = e.offsetX;
+      cursor.y = e.offsetY;
+      thisLine.drag({ x: cursor.x, y: cursor.y });
+    }
   }
 
   // Update cursor position on mouse move
@@ -178,21 +216,24 @@ clearButton.addEventListener("click", () => {
   notify("drawing-changed");
 });
 
-// Thickness buttons functionality
+// Button selection
 function selectButton(button: HTMLButtonElement) {
   // Deselect previous button and select the new one
-  if (currentThicknessButton) {
-    currentThicknessButton.classList.remove("selected");
+  if (currentButton) {
+    currentButton.classList.remove("selected");
   }
   button.classList.add("selected");
-  currentThicknessButton = button;
+
+  currentButton = button;
 }
 
+// Thickness buttons functionality
 function setupThicknessButton(button: HTMLButtonElement) {
   button.addEventListener("click", () => {
     const width = parseInt(button.getAttribute("data-width") || "2", 10);
     currentWidth = width;
 
+    stickerMode = false; // Switch to drawing mode
     selectButton(button);
   });
 }
@@ -201,6 +242,22 @@ function setupThicknessButton(button: HTMLButtonElement) {
 document.querySelectorAll(".thickness-button").forEach((btn) => {
   setupThicknessButton(btn as HTMLButtonElement);
 });
+
+// Sticker buttons functionality
+document.querySelectorAll(".sticker-button").forEach((btn) => {
+  btn.addEventListener("click", (e) => {
+    const sticker = (e.target as HTMLElement).getAttribute("data-sticker");
+    if (sticker) {
+      selectButton(btn as HTMLButtonElement);
+      activateStickerTool(sticker);
+    }
+  });
+});
+
+function activateStickerTool(emoji: string) {
+  stickerMode = true;
+  currentSticker = emoji;
+}
 
 // Select default thickness button
 const defaultThicknessButton = document.getElementById(
