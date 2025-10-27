@@ -19,9 +19,6 @@ document.body.innerHTML = `
     <br>
     <input type="color" class="colorPicker" id="colorPicker" value="#000000ff">
     <br>
-    <button class="button sticker-button" id="sticker" data-sticker="😭">😭</button>
-    <button class="button sticker-button" id="sticker" data-sticker="❤️">❤️</button>
-    <button class="button sticker-button" id="sticker" data-sticker="✨">✨</button>
   </div>
 `;
 
@@ -31,8 +28,14 @@ const ctx = canvas.getContext("2d")!;
 const cursor = { active: false, x: 0, y: 0 };
 let isHovering = false;
 
+// Create enum for current tool
+enum ToolMode {
+  Drawing,
+  Sticker,
+}
+let currentMode: ToolMode = ToolMode.Drawing;
+
 let currentSticker: string | null = null;
-let stickerMode = false;
 
 const event = new EventTarget();
 
@@ -95,6 +98,53 @@ class Sticker implements Renderable {
   }
 }
 
+const stickers: string[] = ["😭", "❤️", "✨"];
+
+// Function to create buttons for stickers
+function createStickerButtons() {
+  const container = document.querySelector(".button-container") as HTMLElement;
+
+  stickers.forEach((sticker) => {
+    const btn = document.createElement("button");
+    btn.className = "button sticker-button";
+    btn.textContent = sticker;
+    btn.title = `Sticker: ${sticker}`;
+    btn.dataset.sticker = sticker; // for event handler
+
+    btn.addEventListener("click", () => {
+      selectButton(btn);
+      activateStickerTool(sticker);
+    });
+
+    container.appendChild(btn);
+  });
+
+  // Custom sticker functionality
+  // Add a "+" button at the end
+  const addBtn = document.createElement("button");
+  addBtn.className = "button sticker-button";
+  addBtn.textContent = "+";
+  addBtn.title = "Create custom sticker";
+
+  addBtn.addEventListener("click", () => {
+    const input = prompt("Enter a custom sticker:", "🎯");
+    if (!input || input.trim() === "") return;
+
+    const char = input.trim();
+
+    // Add to data
+    stickers.push(char);
+
+    // Regenerate buttons to reflect new data 💥
+    document.querySelectorAll(".sticker-button").forEach((btn) => {
+      btn.remove();
+    });
+    createStickerButtons(); // rebuild all
+  });
+
+  container.appendChild(addBtn);
+}
+
 // Store drawn lines
 const lines: Renderable[] = [];
 const redoLines: Renderable[] = [];
@@ -113,13 +163,13 @@ function redraw() {
 
   // Draw preview if hovering
   if (isHovering) {
-    if (!stickerMode) { // Drawing mode preview
+    if (currentMode == ToolMode.Drawing) { // Drawing mode preview
       ctx.beginPath();
       ctx.arc(cursor.x, cursor.y, currentWidth / 2, 0, Math.PI * 2); // Circle centered on cursor
       ctx.fillStyle = currentColor;
       ctx.fill();
       ctx.closePath();
-    } else if (stickerMode && currentSticker) { // Sticker mode preview
+    } else if (currentMode == ToolMode.Sticker && currentSticker) { // Sticker mode preview
       ctx.font = `32px serif`;
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
@@ -138,12 +188,12 @@ canvas.addEventListener("mousedown", (e) => {
   cursor.x = e.offsetX;
   cursor.y = e.offsetY;
 
-  if (!stickerMode) { // Drawing mode
+  if (currentMode == ToolMode.Drawing) { // Drawing mode
     thisLine = new Line([], currentColor, currentWidth);
     thisLine.drag({ x: cursor.x, y: cursor.y });
     lines.push(thisLine);
     redoLines.splice(0, redoLines.length); // Clear redo stack
-  } else if (stickerMode && currentSticker) { // Sticker mode
+  } else if (currentMode == ToolMode.Sticker && currentSticker) { // Sticker mode
     const sticker = new Sticker(cursor.x, cursor.y, currentSticker);
     lines.push(sticker);
     redoLines.splice(0, redoLines.length); // Clear redo stack
@@ -153,7 +203,7 @@ canvas.addEventListener("mousedown", (e) => {
 });
 
 canvas.addEventListener("mousemove", (e) => {
-  if (!stickerMode) {
+  if (currentMode == ToolMode.Drawing) {
     if (cursor.active && thisLine) {
       cursor.x = e.offsetX;
       cursor.y = e.offsetY;
@@ -233,7 +283,7 @@ function setupThicknessButton(button: HTMLButtonElement) {
     const width = parseInt(button.getAttribute("data-width") || "2", 10);
     currentWidth = width;
 
-    stickerMode = false; // Switch to drawing mode
+    currentMode = ToolMode.Drawing; // Switch to drawing mode
     selectButton(button);
   });
 }
@@ -255,7 +305,7 @@ document.querySelectorAll(".sticker-button").forEach((btn) => {
 });
 
 function activateStickerTool(emoji: string) {
-  stickerMode = true;
+  currentMode = ToolMode.Sticker;
   currentSticker = emoji;
 }
 
@@ -271,5 +321,6 @@ colorPicker.addEventListener("input", () => {
   currentColor = colorPicker.value;
 });
 
-// Initial draw
+// Initial function calls
 redraw();
+createStickerButtons();
