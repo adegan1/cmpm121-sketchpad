@@ -120,7 +120,8 @@ class Sticker implements Renderable {
   constructor(
     public x: number,
     public y: number,
-    public emoji: string,
+    public text: string,
+    public color: string | CanvasGradient | CanvasPattern,
     public fontSize: number,
   ) {}
 
@@ -128,7 +129,8 @@ class Sticker implements Renderable {
     ctx.font = `${this.fontSize}px serif`;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillText(this.emoji, this.x, this.y);
+    ctx.fillStyle = this.color;
+    ctx.fillText(this.text, this.x, this.y);
   }
 }
 
@@ -209,6 +211,7 @@ function redraw() {
       ctx.font = `${stickerSize}px serif`;
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
+      ctx.fillStyle = currentColor
       ctx.fillText(currentSticker, cursor.x, cursor.y);
     }
   }
@@ -234,6 +237,7 @@ canvas.addEventListener("mousedown", (e) => {
       cursor.x,
       cursor.y,
       currentSticker,
+      currentColor,
       stickerSize,
     );
     lines.push(sticker);
@@ -346,6 +350,7 @@ function activateStickerTool(emoji: string) {
 const colorPicker = document.getElementById("colorPicker") as HTMLInputElement;
 colorPicker.addEventListener("input", () => {
   currentColor = colorPicker.value;
+  notify("tool-moved"); // trigger redraw for hover preview
 });
 
 // Brush & Sticker size slider functionality
