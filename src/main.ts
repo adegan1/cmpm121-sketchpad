@@ -9,17 +9,30 @@ document.body.innerHTML = `
 
   <canvas class="canvas" id="sketchpad" width="256" height="256"></canvas>
 
-  <div class="button-container">
-    <button class="button orange-button" id="undo">Undo</button>
-    <button class="button orange-button" id="redo">Redo</button>
+  <!-- Edit Toolbar -->
+  <div class="toolbar" id="edit-tools">
+    <button class="button orange-button" id="undo">Undo ↩️</button>
+    <button class="button orange-button" id="redo">Redo ↪️</button>
     <button class="button gray-button" id="clear">Clear</button>
-    <br>
+  </div>
+
+  <!-- Brush Toolbar -->
+  <div class="toolbar" id="brush-tools">
     <button class="button thickness-button" id="thin" data-width="2">Thin</button>
     <button class="button thickness-button" id="thick" data-width="5">Thick</button>
-    <br>
     <input type="color" class="colorPicker" id="colorPicker" value="#000000ff">
-    <br>
-    <div class="button-container" id="stickerContainer">
+  </div>
+
+  <!-- Sticker Toolbar -->
+  <div class="toolbar" id="sticker-tools">
+    <!-- Stickers will be inserted here dynamically -->
+    <div id="sticker-container"></div>
+  </div>
+
+  <!-- Export Button -->
+  <div class="toolbar" id="export-tools">
+    <button class="button gray-button" id="export">Export 💾</button>
+  </div>
 `;
 
 // Create a canvas element and add it to the body
@@ -36,6 +49,7 @@ enum ToolMode {
 let currentMode: ToolMode = ToolMode.Drawing;
 
 let currentSticker: string | null = null;
+let stickerSize = 20;
 
 const event = new EventTarget();
 
@@ -87,11 +101,10 @@ class Sticker implements Renderable {
     public x: number,
     public y: number,
     public emoji: string,
-    public size: number = 20,
   ) {}
 
   display(ctx: CanvasRenderingContext2D): void {
-    ctx.font = `${this.size}px serif`;
+    ctx.font = `${stickerSize}px serif`;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.fillText(this.emoji, this.x, this.y);
@@ -103,7 +116,7 @@ const stickers: string[] = ["😭", "❤️", "✨"];
 // Function to create buttons for stickers
 function createStickerButtons() {
   const container = document.getElementById(
-    "stickerContainer",
+    "sticker-tools",
   ) as HTMLDivElement;
 
   stickers.forEach((sticker) => {
@@ -147,16 +160,13 @@ function createStickerButtons() {
   container.appendChild(addBtn);
 
   // Add Export Button under stickers
-  const divider = document.createElement("div");
-  divider.style.margin = "35px 0";
-  container.appendChild(divider);
+  const exportContainer = document.getElementById(
+    "export-tools",
+  ) as HTMLDivElement;
 
-  const exportButton = document.createElement("button");
-  exportButton.className = "button gray-button";
-  exportButton.id = "export";
-  exportButton.textContent = "Export";
+  const exportButton = document.getElementById("export") as HTMLButtonElement;
   exportButton.addEventListener("click", exportDrawing);
-  container.appendChild(exportButton);
+  exportContainer.appendChild(exportButton);
 }
 
 // Export HD drawing
@@ -207,7 +217,7 @@ function redraw() {
       ctx.fill();
       ctx.closePath();
     } else if (currentMode == ToolMode.Sticker && currentSticker) { // Sticker mode preview
-      ctx.font = `20px serif`;
+      ctx.font = `${stickerSize}px serif`;
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
       ctx.fillText(currentSticker, cursor.x, cursor.y);
