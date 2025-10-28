@@ -49,7 +49,7 @@ enum ToolMode {
 let currentMode: ToolMode = ToolMode.Drawing;
 
 let currentSticker: string | null = null;
-let stickerSize = 20;
+const stickerSize = 20;
 
 const event = new EventTarget();
 
