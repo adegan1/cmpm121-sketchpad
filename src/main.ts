@@ -209,9 +209,9 @@ function redraw() {
       ctx.closePath();
     } else if (currentMode == ToolMode.Sticker && currentSticker) { // Sticker mode preview
       ctx.font = `${stickerSize}px serif`;
+      ctx.fillStyle = currentColor;
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
-      ctx.fillStyle = currentColor
       ctx.fillText(currentSticker, cursor.x, cursor.y);
     }
   }
