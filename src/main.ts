@@ -18,20 +18,28 @@ document.body.innerHTML = `
 
   <!-- Brush Toolbar -->
   <div class="toolbar" id="brush-tools">
-    <button class="button thickness-button" id="thin" data-width="2">Thin</button>
-    <button class="button thickness-button" id="thick" data-width="5">Thick</button>
+    <div class="toolbar sub-toolbar">
+      <input type="range" id="brush-size" min="1" max="20" value="3" class="slider">
+      <span id="brush-preview" class="preview-circle" style="width: 3px; height: 3px;"></span>
+    </div>
+    <button class="button draw-button" id="draw" data-width="5">Draw ✏️</button>
     <input type="color" class="colorPicker" id="colorPicker" value="#000000ff">
   </div>
 
   <!-- Sticker Toolbar -->
   <div class="toolbar" id="sticker-tools">
+    <div class="toolbar sub-toolbar">
+      <input type="range" id="sticker-size" min="10" max="60" value="20" class="slider">
+      <span id="sticker-preview" class="preview-circle" style="width: 20px; height: 20px;"></span>
+    </div>
     <!-- Stickers will be inserted here dynamically -->
     <div id="sticker-container"></div>
   </div>
 
   <!-- Export Button -->
   <div class="toolbar" id="export-tools">
-    <button class="button gray-button" id="export">Export 💾</button>
+    <button class="button export-button">Export (TP 🪟) 💾</button>
+    <button class="button export-button" data-bg="white">Export (BG 🖼️) 💾</button>
   </div>
 `;
 
@@ -49,7 +57,7 @@ enum ToolMode {
 let currentMode: ToolMode = ToolMode.Drawing;
 
 let currentSticker: string | null = null;
-const stickerSize = 20;
+let stickerSize = 20;
 
 const event = new EventTarget();
 
@@ -74,11 +82,23 @@ class Line implements Renderable {
   ) {}
 
   display(ctx: CanvasRenderingContext2D): void {
-    if (this.points.length < 2) return;
+    if (this.points.length === 0) return;
 
     ctx.strokeStyle = this.color;
     ctx.lineWidth = this.width;
+    ctx.lineCap = "round";
 
+    // Draw a dot if there is only one point
+    if (this.points.length === 1) {
+      const { x, y } = this.points[0];
+      ctx.beginPath();
+      ctx.arc(x, y, this.width / 2, 0, Math.PI * 2); // Draw a circle
+      ctx.fillStyle = this.color;
+      ctx.fill();
+      return;
+    }
+
+    // Otherwise, draw line as usual
     ctx.beginPath();
     const { x, y } = this.points[0];
     ctx.moveTo(x, y);
@@ -101,10 +121,11 @@ class Sticker implements Renderable {
     public x: number,
     public y: number,
     public emoji: string,
+    public fontSize: number,
   ) {}
 
   display(ctx: CanvasRenderingContext2D): void {
-    ctx.font = `${stickerSize}px serif`;
+    ctx.font = `${this.fontSize}px serif`;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.fillText(this.emoji, this.x, this.y);
@@ -158,38 +179,6 @@ function createStickerButtons() {
   });
 
   container.appendChild(addBtn);
-
-  // Add Export Button under stickers
-  const exportContainer = document.getElementById(
-    "export-tools",
-  ) as HTMLDivElement;
-
-  const exportButton = document.getElementById("export") as HTMLButtonElement;
-  exportButton.addEventListener("click", exportDrawing);
-  exportContainer.appendChild(exportButton);
-}
-
-// Export HD drawing
-function exportDrawing() {
-  // Create offscreen canvas at 1024x1024 (4x scale)
-  const exportCanvas = document.createElement("canvas");
-  exportCanvas.width = 1024;
-  exportCanvas.height = 1024;
-  const ctx = exportCanvas.getContext("2d")!;
-
-  // Scale context so everything draws 4x larger
-  ctx.scale(4, 4);
-
-  // Re-run all 'renderable' items from lines array (skip previews)
-  lines.forEach((item) => {
-    item.display(ctx);
-  });
-
-  // Convert to PNG and trigger download
-  const link = document.createElement("a");
-  link.download = "sketchpad.png";
-  link.href = exportCanvas.toDataURL("image/png");
-  link.click();
 }
 
 // Store drawn lines
@@ -241,7 +230,12 @@ canvas.addEventListener("mousedown", (e) => {
     lines.push(thisLine);
     redoLines.splice(0, redoLines.length); // Clear redo stack
   } else if (currentMode == ToolMode.Sticker && currentSticker) { // Sticker mode
-    const sticker = new Sticker(cursor.x, cursor.y, currentSticker);
+    const sticker = new Sticker(
+      cursor.x,
+      cursor.y,
+      currentSticker,
+      stickerSize,
+    );
     lines.push(sticker);
     redoLines.splice(0, redoLines.length); // Clear redo stack
   }
@@ -324,21 +318,13 @@ function selectButton(button: HTMLButtonElement) {
   currentButton = button;
 }
 
-// Thickness buttons functionality
-function setupThicknessButton(button: HTMLButtonElement) {
-  button.addEventListener("click", () => {
-    const width = parseInt(button.getAttribute("data-width") || "3", 10);
-    currentWidth = width;
-
-    currentMode = ToolMode.Drawing; // Switch to drawing mode
-    selectButton(button);
-  });
-}
-
-// Get all thickness buttons and set them up
-document.querySelectorAll(".thickness-button").forEach((btn) => {
-  setupThicknessButton(btn as HTMLButtonElement);
+// Draw button functionality
+const drawButton = document.getElementById("draw") as HTMLButtonElement;
+drawButton.addEventListener("click", () => {
+  currentMode = ToolMode.Drawing; // Switch to drawing mode
+  selectButton(drawButton);
 });
+selectButton(drawButton); // Select draw button by default
 
 // Sticker buttons functionality
 document.querySelectorAll(".sticker-button").forEach((btn) => {
@@ -356,17 +342,80 @@ function activateStickerTool(emoji: string) {
   currentSticker = emoji;
 }
 
-// Select default thickness button
-const defaultThicknessButton = document.getElementById(
-  "thin",
-) as HTMLButtonElement;
-selectButton(defaultThicknessButton);
-
 // Color picker functionality
 const colorPicker = document.getElementById("colorPicker") as HTMLInputElement;
 colorPicker.addEventListener("input", () => {
   currentColor = colorPicker.value;
 });
+
+// Brush & Sticker size slider functionality
+const brushSlider = document.getElementById("brush-size") as HTMLInputElement;
+const brushPreview = document.getElementById("brush-preview") as HTMLDivElement;
+
+brushSlider.addEventListener("input", () => {
+  const size = parseInt(brushSlider.value);
+  currentWidth = size;
+  brushPreview.style.width = `${size}px`;
+  brushPreview.style.height = `${size}px`;
+  brushPreview.style.color = currentColor;
+  notify("cursor-changed"); // trigger redraw for hover preview
+});
+
+const stickerSlider = document.getElementById(
+  "sticker-size",
+) as HTMLInputElement;
+const stickerPreview = document.getElementById(
+  "sticker-preview",
+) as HTMLDivElement;
+
+stickerSlider.addEventListener("input", () => {
+  const size = parseInt(stickerSlider.value);
+  stickerSize = size;
+  stickerPreview.style.width = `${size}px`;
+  stickerPreview.style.height = `${size}px`;
+  notify("tool-moved"); // update sticker hover preview
+});
+
+// Add Export Button functionality
+document.querySelectorAll(".export-button").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    const target = btn as HTMLButtonElement;
+
+    // Read the background setting from data attribute
+    const bg = target.dataset.bg || null; // "white" or null
+
+    // Pass it to your unified export function
+    exportDrawing(bg);
+  });
+});
+
+// Export HD drawing
+function exportDrawing(bgColor: string | null = null) {
+  // Create offscreen canvas at 1024x1024 (4x scale)
+  const exportCanvas = document.createElement("canvas");
+  exportCanvas.width = 1024;
+  exportCanvas.height = 1024;
+  const ctx = exportCanvas.getContext("2d")!;
+
+  if (bgColor) {
+    ctx.fillStyle = bgColor;
+    ctx.fillRect(0, 0, exportCanvas.width, exportCanvas.height);
+  }
+
+  // Scale context so everything draws 4x larger
+  ctx.scale(4, 4);
+
+  // Re-run all 'renderable' items from lines array (skip previews)
+  lines.forEach((item) => {
+    item.display(ctx);
+  });
+
+  // Convert to PNG and trigger download
+  const link = document.createElement("a");
+  link.download = "sketchpad.png";
+  link.href = exportCanvas.toDataURL("image/png");
+  link.click();
+}
 
 // Initial function calls
 redraw();

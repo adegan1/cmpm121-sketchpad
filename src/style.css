@@ -1,5 +1,6 @@
 .title {
   font-family: "Brush Script MT", cursive, sans-serif;
+  font-size: 36px;
   color: #000000;
   text-align: center;
 }
@@ -30,8 +31,14 @@
   align-items: center; /* Centers children vertically */
   flex-wrap: wrap; /* Allows wrapping on small screens */
   gap: 10px; /* Nice spacing between buttons */
-  max-width: 400px; /* Keeps toolbar snug */
+  max-width: 350px; /* Keeps toolbar snug */
   width: fit-content; /* Only as wide as content */
+}
+
+.sub-toolbar {
+  margin-left: 10%;
+  margin-right: 10%;
+  box-shadow: 4px 4px 5px rgba(0, 0, 0, 0.3);
 }
 
 .button {
@@ -46,6 +53,11 @@
   border-radius: 4px;
 }
 
+.export-button {
+  background-color: #746d6d;
+  color: white;
+}
+
 .gray-button {
   background-color: #353535;
   color: white;
@@ -56,14 +68,14 @@
   color: white;
 }
 
-.thickness-button {
+.draw-button {
   background-color: #229726;
   color: white;
   border-radius: 50px;
 }
 
-.thickness-button.selected {
-  border: 4px solid rgb(58, 58, 58);
+.draw-button.selected {
+  border: 4px solid rgb(22, 85, 16);
   transform: scale(1.05);
   transition: all 0.1s ease;
 }
@@ -87,4 +99,12 @@
   height: 50px;
   border: none;
   cursor: pointer;
+}
+
+.preview-circle {
+  display: inline-block;
+  border-radius: 50%;
+  background: #000;
+  margin-left: 8px;
+  transition: width 0.1s, height 0.1s;
 }
