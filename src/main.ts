@@ -19,7 +19,7 @@ document.body.innerHTML = `
     <br>
     <input type="color" class="colorPicker" id="colorPicker" value="#000000ff">
     <br>
-  </div>
+    <div class="button-container" id="stickerContainer">
 `;
 
 // Create a canvas element and add it to the body
@@ -102,14 +102,16 @@ const stickers: string[] = ["😭", "❤️", "✨"];
 
 // Function to create buttons for stickers
 function createStickerButtons() {
-  const container = document.querySelector(".button-container") as HTMLElement;
+  const container = document.getElementById(
+    "stickerContainer",
+  ) as HTMLDivElement;
 
   stickers.forEach((sticker) => {
     const btn = document.createElement("button");
     btn.className = "button sticker-button";
     btn.textContent = sticker;
     btn.title = `Sticker: ${sticker}`;
-    btn.dataset.sticker = sticker; // for event handler
+    btn.dataset.sticker = sticker;
 
     btn.addEventListener("click", () => {
       selectButton(btn);
@@ -143,6 +145,41 @@ function createStickerButtons() {
   });
 
   container.appendChild(addBtn);
+
+  // Add Export Button under stickers
+  const divider = document.createElement("div");
+  divider.style.margin = "10px 0";
+  container.appendChild(divider);
+
+  const exportButton = document.createElement("button");
+  exportButton.className = "button gray-button";
+  exportButton.id = "export";
+  exportButton.textContent = "Export";
+  exportButton.addEventListener("click", exportDrawing);
+  container.appendChild(exportButton);
+}
+
+// Export HD drawing
+function exportDrawing() {
+  // Create offscreen canvas at 1024x1024 (4x scale)
+  const exportCanvas = document.createElement("canvas");
+  exportCanvas.width = 1024;
+  exportCanvas.height = 1024;
+  const ctx = exportCanvas.getContext("2d")!;
+
+  // Scale context so everything draws 4x larger
+  ctx.scale(4, 4);
+
+  // Re-run all 'renderable' items from lines array (skip previews)
+  lines.forEach((item) => {
+    item.display(ctx);
+  });
+
+  // Convert to PNG and trigger download
+  const link = document.createElement("a");
+  link.download = "sketchpad.png";
+  link.href = exportCanvas.toDataURL("image/png");
+  link.click();
 }
 
 // Store drawn lines
