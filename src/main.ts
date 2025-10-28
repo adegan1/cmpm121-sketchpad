@@ -44,7 +44,7 @@ let currentButton: HTMLButtonElement | null = null;
 // Set up default canvas context
 ctx.lineCap = "round";
 let currentColor = "#000000ff";
-let currentWidth = 2;
+let currentWidth = 3;
 
 // Create basic renderable interface
 interface Renderable {
@@ -87,7 +87,7 @@ class Sticker implements Renderable {
     public x: number,
     public y: number,
     public emoji: string,
-    public size: number = 32,
+    public size: number = 20,
   ) {}
 
   display(ctx: CanvasRenderingContext2D): void {
@@ -148,7 +148,7 @@ function createStickerButtons() {
 
   // Add Export Button under stickers
   const divider = document.createElement("div");
-  divider.style.margin = "10px 0";
+  divider.style.margin = "35px 0";
   container.appendChild(divider);
 
   const exportButton = document.createElement("button");
@@ -207,7 +207,7 @@ function redraw() {
       ctx.fill();
       ctx.closePath();
     } else if (currentMode == ToolMode.Sticker && currentSticker) { // Sticker mode preview
-      ctx.font = `32px serif`;
+      ctx.font = `20px serif`;
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
       ctx.fillText(currentSticker, cursor.x, cursor.y);
@@ -317,7 +317,7 @@ function selectButton(button: HTMLButtonElement) {
 // Thickness buttons functionality
 function setupThicknessButton(button: HTMLButtonElement) {
   button.addEventListener("click", () => {
-    const width = parseInt(button.getAttribute("data-width") || "2", 10);
+    const width = parseInt(button.getAttribute("data-width") || "3", 10);
     currentWidth = width;
 
     currentMode = ToolMode.Drawing; // Switch to drawing mode
